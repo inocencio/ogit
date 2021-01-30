@@ -18,6 +18,8 @@ Run the following command to build and execute it:
 
 ```
 go build #build the ogit into your project's folder.
-go install #build it to GOPATH bin folder. <recommended for global use>
+go install #build it to GOPATH bin folder. <recommended for global uses>
 go run ogit.go #execute it directly from go
 ```
+
+Create an executable file from `go build` or `go install` and make sure to place it in user's path to access it from anywhere. Just type `ogit` inside a folder with a *.git* directory and the magic goes on and get ready to browse it. ;)
