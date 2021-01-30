@@ -11,7 +11,7 @@ ogit is simple and straightforward. All github project has a internal and hidden
 Git clone the master repository of the project:
 
 ```
-git clone github.com\inocencio\master\ogit
+git clone https://github.com/inocencio/ogit
 ```
 
 Run the following command to build and execute it:
