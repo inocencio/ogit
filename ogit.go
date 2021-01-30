@@ -1,9 +1,6 @@
 /**
-Author: Inocêncio T. de Oliveira
-
-Check if the current source code is a github project and then open its github location site.
-
-Just type ogit on terminal and correlative github site will be opened.
+Author: Inocencio
+Description: Check if the current source is a github project and open its project site.
 **/
 
 package main
@@ -24,9 +21,6 @@ func checkErr(err error) {
 	}
 }
 
-/**
-Get github URL from /.git/config file.
- */
 func getURL(filename string) string {
 	file, err := os.Open(filename)
 	checkErr(err)
@@ -42,6 +36,7 @@ func getURL(filename string) string {
 				return strings.TrimSpace(tokens[1])
 			}
 		}
+
 	}
 
 	return ""
@@ -51,19 +46,20 @@ func openBrowser(filepath string) {
 	var err error
 	var url string
 
+	//acomplish the full path with configure file.
 	filepath += "/config"
 
-	if _, err = os.Stat(filepath); err != nil {
-		if os.IsNotExist(err) {
-			log.Fatal("Error: this is not a valid GitHub Project!")
-		}
+	_, err = os.Stat(filepath)
+
+	if os.IsNotExist(err) {
+		log.Fatal("It was unable to retrieve its GitHub site from this path.")
 	}
 
+	//try to get the URL
 	url = getURL(filepath)
 
 	if len(url) == 0 {
-		panic("It was unable to parse URL.")
-		return
+		log.Fatal("It was unable to parse URL.")
 	}
 
 	fmt.Printf("Opening %s...\n", url)
@@ -76,7 +72,7 @@ func openBrowser(filepath string) {
 	case "darwin":
 		err = exec.Command("open", url).Start()
 	default:
-		err = fmt.Errorf("Unsupported platform")
+		err = fmt.Errorf("Unsupported platform\n")
 	}
 
 	checkErr(err)
@@ -89,10 +85,7 @@ func main() {
 	//check if path is a valid hidden github folder
 	var path = cDir + "/.git"
 	fi, err := os.Stat(cDir)
-
-	if os.IsNotExist(err) {
-		log.Fatal("Error: this is not a valid GitHub Project!")
-	}
+	checkErr(err)
 
 	if fi.IsDir() {
 		openBrowser(path)
