@@ -1,6 +1,6 @@
 ## ogit
 
-ogit means _"open git"_ and it's suitable to open from current folder the github's project website.
+ogit means _"open git"_, and it's suitable to open from current folder the github's project website.
 
 Make sure you have [Golang](https://golang.org/) installed if you want to make any further modifications.
 
