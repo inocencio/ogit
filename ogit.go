@@ -10,7 +10,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/jessevdk/go-flags"
-	"github.com/magiconair/properties"
+	"github.com/tucnak/store"
 	"log"
 	"os"
 	"os/exec"
@@ -19,12 +19,14 @@ import (
 	"strings"
 )
 
+var configFileName = ".ogit.toml"
+
 type Options struct {
 	Browser string `short:"b" long:"browser" description:"Set a browser path to ogit's default browser.'"`
 }
 
 type Config struct {
-	Browser string
+	Browser string `toml:"browser"`
 }
 
 func checkErr(err error) {
@@ -50,37 +52,61 @@ func getString(s string, sep string, index int) string {
 func getConfigPath() string {
 	fp, err := os.UserConfigDir()
 	checkErr(err)
-	return path.Join(fp, ".ogit")
+	return path.Join(fp, configFileName)
 }
 
+//func getProperties(fp string) *properties.Properties {
+//	return properties.MustLoadFile(fp, properties.UTF8)
+//}
 
-func getProperties(fp string) *properties.Properties {
-	return properties.MustLoadFile(fp, properties.UTF8)
+func getProperties() *Config {
+	var config Config
+
+	if err := store.Load(configFileName, &config); err != nil {
+		fmt.Println("Err:06 - It was unable to save .ogit file")
+		os.Exit(-1)
+	}
+
+	return &config
 }
 
-func createPropertiesFile(fp string) {
-	if _, err := os.Stat(fp); os.IsNotExist(err) {
-		f, err := os.Create(fp)
+func createPropertiesFile() {
+	if _, err := os.Stat(getConfigPath()); os.IsNotExist(err) {
+		f, err := os.Create(getConfigPath())
 		checkErr(err)
 		defer f.Close()
 	}
 }
 
-func saveProperties(fp string, config* Config) {
+func saveProperties(config* Config) {
 	//create a file to store our properties if it doesn't exist
-	createPropertiesFile(fp)
+	createPropertiesFile()
 
-	//write properties content
+	//write properties content if it exists
 	if config != nil {
-		var fc string
-		fc += "browser=" + config.Browser
+		//load properties in saveConfig to change its content if needed it
+		var saveConfig *Config
+		saveConfig = getProperties()
 
-		//write to file
-		f, err := os.Open(fp)
-		checkErr(err)
-		_, err = f.WriteString(fc)
-		checkErr(err)
-		defer f.Close()
+		//check the properties differences and store it if they are different
+		if config.Browser != saveConfig.Browser {
+			saveConfig.Browser = config.Browser
+		}
+
+		if err := store.Save(configFileName, &saveConfig); err != nil {
+			fmt.Println("Err:06 - It was unable to save .ogit file")
+			os.Exit(-1)
+		}
+
+		//var fc string
+		//fc += "browser=" + config.Browser
+		//
+		////write to file
+		//f, err := os.Open(fp)
+		//checkErr(err)
+		//_, err = f.WriteString(fc)
+		//checkErr(err)
+		//defer f.Close()
 	}
 }
 
@@ -125,7 +151,7 @@ func getURL(filename string) string {
 /**
 Open a browser based on current OS and defined browser as default.
  */
-func openBrowser(filepath string, config Config) {
+func openBrowser(filepath string, config* Config) {
 	var err error
 	var url string
 
@@ -166,7 +192,7 @@ func openBrowser(filepath string, config Config) {
 	}
 }
 
-func checkConfigFile() Config {
+func checkConfigFile() *Config {
 	var options Options
 	var config Config
 	configChanged := false
@@ -176,39 +202,40 @@ func checkConfigFile() Config {
 	_, err := parser.Parse()
 	checkErr(err)
 
-	//check if 'config/.ogit' file exists, if not, create one and set the browser's path
-	fp := getConfigPath()
-
 	//check if a browser argument is set
 	if len(options.Browser) > 0 {
 		config.Browser = options.Browser
 		configChanged = true
 	}
 
-	//save properties to properties fiel
+	//save properties to properties file if config is changed
 	if configChanged {
-		saveProperties(fp, &config)
-	} else {
-		saveProperties(fp, nil)
+		saveProperties(&config)
 	}
 
-	//load properties
-	p := getProperties(fp)
-	config.Browser = p.MustGetString("browser")
+	//always load the properties file
+	conf := getProperties()
 
-	return config
+	return conf
 }
 
 func init() {
-	saveProperties(getConfigPath(), nil)
+	//create a properties file if it doesn't exist
+	saveProperties(nil)
+
+	//register user's config path
+	configPath, err := os.UserConfigDir()
+	checkErr(err)
+
+	store.Init(configPath)
 }
 
 func main() {
-	var config = checkConfigFile()
-
+	//get current home
 	pwd, err := os.Getwd()
 	checkErr(err)
 
+	//mount a properties file path
 	var gitPath = pwd + "/.git"
 	fi, err := os.Stat(gitPath)
 
@@ -222,6 +249,7 @@ func main() {
 
 	//check if gitPath is a directory and then try to open a browser
 	if fi.IsDir() {
+		var config = checkConfigFile()
 		openBrowser(gitPath, config)
 	} else {
 		fmt.Println("Err:02 The '.git' is not a valid GitHub folder, it's a file instead.")
