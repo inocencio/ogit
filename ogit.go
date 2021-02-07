@@ -10,7 +10,8 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/jessevdk/go-flags"
-	"github.com/tucnak/store"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -19,14 +20,25 @@ import (
 	"strings"
 )
 
-var configFileName = ".ogit.toml"
+var configFileName = ".ogit"
 
 type Options struct {
 	Browser string `short:"b" long:"browser" description:"Set a browser path to ogit's default browser.'"`
 }
 
 type Config struct {
-	Browser string `toml:"browser"`
+	Browser string `yaml:"browser"`
+}
+
+func closeFile(f* os.File) {
+	err := f.Close()
+
+	if err != nil {
+		_, err := fmt.Fprintf(os.Stderr, "Error on closing file: %v\n", err)
+
+		if err != nil {}
+		os.Exit(1)
+	}
 }
 
 func checkErr(err error) {
@@ -50,19 +62,22 @@ func getString(s string, sep string, index int) string {
 }
 
 func getConfigPath() string {
-	fp, err := os.UserConfigDir()
+	var fp string
+	var err error
+
+	fp, err = os.UserConfigDir()
+
 	checkErr(err)
 	return path.Join(fp, configFileName)
 }
 
-//func getProperties(fp string) *properties.Properties {
-//	return properties.MustLoadFile(fp, properties.UTF8)
-//}
-
 func getProperties() *Config {
 	var config Config
+	var byteContent = readFile()
 
-	if err := store.Load(configFileName, &config); err != nil {
+	err := yaml.Unmarshal(byteContent, &config)
+
+	if err != nil {
 		fmt.Println("Err:06 - It was unable to save .ogit file")
 		os.Exit(-1)
 	}
@@ -74,8 +89,23 @@ func createPropertiesFile() {
 	if _, err := os.Stat(getConfigPath()); os.IsNotExist(err) {
 		f, err := os.Create(getConfigPath())
 		checkErr(err)
-		defer f.Close()
+		defer closeFile(f)
 	}
+}
+
+func saveFile(content []byte) {
+	f, err := os.OpenFile(getConfigPath(), os.O_WRONLY, 0755)
+	checkErr(err)
+
+	_, err = f.Write(content)
+	checkErr(err)
+}
+
+func readFile() []byte {
+	b, err := ioutil.ReadFile(getConfigPath())
+	checkErr(err)
+
+	return b
 }
 
 func saveProperties(config* Config) {
@@ -93,20 +123,15 @@ func saveProperties(config* Config) {
 			saveConfig.Browser = config.Browser
 		}
 
-		if err := store.Save(configFileName, &saveConfig); err != nil {
+		byteContent, err := yaml.Marshal(&saveConfig)
+		saveFile(byteContent)
+
+		if err != nil {
 			fmt.Println("Err:06 - It was unable to save .ogit file")
 			os.Exit(-1)
 		}
 
-		//var fc string
-		//fc += "browser=" + config.Browser
-		//
-		////write to file
-		//f, err := os.Open(fp)
-		//checkErr(err)
-		//_, err = f.WriteString(fc)
-		//checkErr(err)
-		//defer f.Close()
+
 	}
 }
 
@@ -116,7 +141,7 @@ Try to get an URL from .git/config file from url parameter.
 func getURL(filename string) string {
 	file, err := os.Open(filename)
 	checkErr(err)
-	defer file.Close()
+	defer closeFile(file)
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
@@ -214,20 +239,12 @@ func checkConfigFile() *Config {
 	}
 
 	//always load the properties file
-	conf := getProperties()
-
-	return conf
+	return getProperties()
 }
 
 func init() {
 	//create a properties file if it doesn't exist
 	saveProperties(nil)
-
-	//register user's config path
-	configPath, err := os.UserConfigDir()
-	checkErr(err)
-
-	store.Init(configPath)
 }
 
 func main() {
