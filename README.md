@@ -26,7 +26,12 @@ Create an executable file from `go build` or `go install` and make sure to place
 
 ### Run
 
-Type `ogit` in the same folder from a git project and open its URL.
+Type `ogit` in the same folder from a git project.
+
+```bash
+ogit
+```
+
 You can set the browser you want to be used instead the default browser configured.
 
 ```bash
