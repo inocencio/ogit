@@ -23,3 +23,14 @@ go run ogit.go #execute it directly from go
 ```
 
 Create an executable file from `go build` or `go install` and make sure to place it in user's path to access it from anywhere. Just type `ogit` inside a folder with a *.git* directory and the magic goes on and get ready to browse it. ;)
+
+### Run
+
+Type `ogit` in the same folder from a git project and open its URL.
+You can set the browser you want to be used instead the default browser configured.
+
+```bash
+ogit -b <browser's bath>
+```
+
+ogit config file is stored in the system config path. Usually in Linux and Mac it's store in `~/.config/.ogit`, in windows it's usually stored in `<user>\AppData\Roaming\.ogit`.
